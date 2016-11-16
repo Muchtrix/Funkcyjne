@@ -50,8 +50,39 @@ let splitLL li =
                               else lfilter f (rs())
   in (lfilter (fun i -> i >= 0) li, lfilter (fun i -> i < 0) li);;
 
-splitLL @@ LCons(1, fun ()-> LCons(2, fun()->LNil));;
-splitLL @@ LCons(-1, fun()->LCons(0, fun()-> LCons(1, fun()->LNil)));;
+splitLL @@ LCons(1,  fun () -> LCons(2, fun () -> LNil));;
+splitLL @@ LCons(-1, fun () -> LCons(0, fun () -> LCons(1, fun () -> LNil)));;
 
 (* Zadanie 4 *)
 let toLBST li =
+  let rec auxLBST li lo hi =
+    match li with
+    | LNil          -> LEmpty
+    | LCons (a, li) -> if lo < a && a < hi then LNode (a, lazy(auxLBST (li()) lo a), lazy(auxLBST (li()) a hi))
+                                           else auxLBST (li()) lo hi
+  in
+  let rec auxLeft li hi =
+    match li with
+    | LNil          -> LEmpty
+    | LCons (a, li) -> if a < hi then LNode (a, lazy(auxLeft (li()) a), lazy(auxLBST (li()) a hi))
+                                 else auxLeft (li()) hi
+  in
+  let rec auxRight li lo =
+    match li with
+    | LNil          -> LEmpty
+    | LCons (a, li) -> if lo < a then LNode (a, lazy(auxLBST (li()) lo a), lazy(auxRight (li()) a))
+                                 else auxRight (li()) lo
+  in match li with
+    | LNil          -> LEmpty
+    | LCons (a, li) -> LNode (a, lazy(auxLeft (li()) a), lazy(auxRight (li()) a))
+    ;;
+
+let rec traverse tree =
+  match tree with
+  | LEmpty                           -> []
+  | LNode (a, lazy left, lazy right) -> (traverse left) @ [a] @ (traverse right);;
+
+traverse @@ toLBST @@ LNil
+  = [];;
+traverse @@ toLBST @@ LCons(6, fun()->LCons(1, fun()->LCons(4, fun()->LCons(2, fun()->LCons(5, fun()->LCons(3, fun()->LNil))))))
+  = [1;2;3;4;5;6];;
