@@ -73,9 +73,9 @@ let punktyZaMeldunek = function
 let zwyciezcaLewy (stol: Stol) =
     let wyn karta =
         let (Karta(k, w)) = karta
-        if Some k = stol.atu then  10 * ((punktyZaKarte karta) + 1)
-                             else if Some k = stol.kol then punktyZaKarte karta
-                                                       else 0
+        if Some k = stol.atu then  20 * ((punktyZaKarte karta) + 1)
+                             else if Some k = stol.kol then 1 + punktyZaKarte karta
+                                                                          else 0
     let w0 = wyn stol.karty.[0]
     let w1 = wyn stol.karty.[1]
     let w2 = wyn stol.karty.[2]
@@ -105,13 +105,27 @@ let symbolWartosc = function
     | As       -> "A"
 
 let pokazStol (stol: Stol) (gracze: GraczStr []) (kolejnosc: Int32 list) =
-    let dl       = (List.length stol.karty) - 1
-    let poleDl   = String.length (Array.reduce (fun g1 g2 -> if String.length g1.imie < String.length g2.imie then g2 else g1) gracze).imie + 1
-    let boki     = List.fold (fun aku _ -> aku + sprintf "%-*s" poleDl "+---+") "" stol.karty 
-    let kolory   = List.fold (fun aku (Karta(k,_)) -> aku + (sprintf "%-*s" poleDl <| sprintf "| %s |" (symbolKolor k))) "" stol.karty
-    let wartosci = List.fold (fun aku (Karta(_,w)) -> aku + (sprintf "%-*s" poleDl <| sprintf "| %-2s|" ( symbolWartosc w))) "" stol.karty
-    let imiona   = List.fold (fun aku ind -> aku + (sprintf "%-*s" poleDl gracze.[kolejnosc.[ind]].imie)) "" [0 .. dl]
-    [boki; kolory; wartosci; boki; imiona]
+    if List.isEmpty stol.karty then ["     ";"     ";"pusty";"     ";"     "]
+        else
+        let dl       = (List.length stol.karty) - 1
+        let poleDl   = String.length (Array.reduce (fun g1 g2 -> if String.length g1.imie < String.length g2.imie then g2 else g1) gracze).imie + 1
+        let boki     = List.fold (fun aku _ -> aku + sprintf "%-*s" poleDl "+---+") "" stol.karty 
+        let kolory   = List.fold (fun aku (Karta(k,_)) -> aku + (sprintf "%-*s" poleDl <| sprintf "| %s |" (symbolKolor k))) "" stol.karty
+        let wartosci = List.fold (fun aku (Karta(_,w)) -> aku + (sprintf "%-*s" poleDl <| sprintf "| %-2s|" ( symbolWartosc w))) "" stol.karty
+        let imiona   = List.fold (fun aku ind -> aku + (sprintf "%-*s" poleDl gracze.[kolejnosc.[ind]].imie)) "" [0 .. dl]
+        [boki; kolory; wartosci; boki; imiona]
+
+let wynikRundy (gracze: GraczStr []) (wyniki: Int32 []) =
+    let poleDl = String.length (Array.reduce (fun g1 g2 -> if String.length g1.imie < String.length g2.imie then g2 else g1) gracze).imie
+    let poprzeczka = String.replicate poleDl "-"
+    printfn "+-%s---%s---%s-+" poprzeczka poprzeczka poprzeczka
+    printfn "| %*s       |" (poleDl * 3) "Wyniki rundy"
+    printfn "|-%s-+-%s-+-%s-|" poprzeczka poprzeczka poprzeczka
+    printfn "| %*s | %*s | %*s |" poleDl gracze.[0].imie poleDl gracze.[1].imie poleDl gracze.[2].imie 
+    printfn "|-%s-+-%s-+-%s-|" poprzeczka poprzeczka poprzeczka
+    printfn "| %*d | %*d | %*d |" poleDl wyniki.[0] poleDl wyniki.[1] poleDl wyniki.[2] 
+    printfn "+-%s-+-%s-+-%s-+" poprzeczka poprzeczka poprzeczka
+    
 
 let wypiszStol (stol: Stol) (gracze: GraczStr []) (kolejnosc: Int32 list) =
     for linijka in pokazStol stol gracze kolejnosc do
@@ -124,17 +138,19 @@ let pokazRekeIStol (reka: Karta list) (dozw: Boolean list) (stol: Stol) (gracze:
     let ustawKolor kol = if kol then Console.ForegroundColor <- kolorAktywny
                                 else Console.ForegroundColor <- kolorNieaktywny
     let naStole = pokazStol stol gracze kolejnosc
-    let mozeKolor = function Some k -> sprintf "%A" k | _ -> "brak"
+    let mozeKolor = function Some k -> sprintf "%A" k | _ -> "-----"
     let mutable licznik = 1
-    printfn "Kolor: %s, Atu: %s" (mozeKolor stol.kol) (mozeKolor stol.atu)
+    printfn ""
+    printfn "%s" <| String.replicate (3 + String.length naStole.[0] + 5 * List.length lista) "-"
+    printfn "Kolor: %5s, Atu: %s" (mozeKolor stol.kol) (mozeKolor stol.atu)
     printfn "%-*s | Twoja ręka" (String.length naStole.[0]) "Stol"
     printfn "%4s-+-%s" (String.replicate (String.length naStole.[0]) "-") (String.replicate (5 * List.length lista) "-")
     let linijki = [   
-                    (0, (fun _ _ -> printf "+---+"))
+                    (0, (fun _ _               -> printf "+---+"))
                     (1, (fun (Karta(kol, _)) _ -> printf "| %s |" <| symbolKolor kol))
                     (2, (fun (Karta(_, war)) _ -> printf "| %-2s|" <| symbolWartosc war))
-                    (3, (fun _ _ -> printf "+---+"))
-                    (4, (fun _ akt -> (if akt then printf "  %d  " licznik else printf "     "); licznik <- licznik + 1)) ] 
+                    (3, (fun _ _               -> printf "+---+"))
+                    (4, (fun _ akt             -> (if akt then printf "  %d  " licznik else printf "     "); licznik <- licznik + 1)) ] 
     for (ind, lam) in linijki do
         printf "%-4s | " naStole.[ind]
         for (karta, aktywna) in lista do
@@ -164,7 +180,7 @@ let pokazReke (reka: Karta list) (liczby: Boolean) =
 let wypiszHistorie (historia: Int32 [] list) (gracze:GraczStr []) = 
     let poleDl   = String.length (Array.reduce (fun g1 g2 -> if String.length g1.imie < String.length g2.imie then g2 else g1) gracze).imie + 1
     let poprzeczka = String.replicate (poleDl + 2) "-"
-    printfn " %-*s | %-*s | %-*s" poleDl gracze.[0].imie poleDl gracze.[1].imie poleDl gracze.[2].imie
+    printfn " %*s | %*s | %*s" poleDl gracze.[0].imie poleDl gracze.[1].imie poleDl gracze.[2].imie
     printfn "%s+%s+%s" poprzeczka poprzeczka poprzeczka
     for wpis in historia do
         printfn " %*d | %*d | %*d" poleDl wpis.[0] poleDl wpis.[1] poleDl wpis.[2]
@@ -251,12 +267,13 @@ let CPUlicytacja (reka: Karta list) (wynik: Int32) =
 
 let CPUwygrywajaceKarty (reka: Karta list) (stol: Stol) =
     let pozostale = (Set.ofList stol.pozostale) - (Set.ofList reka)
-    let kombinacje k = 
+    let kombinacje k =
+        let (Karta(kk,_)) = k 
         match stol.karty with
-        | [k1; k2] -> [[k; k1; k2]]
-        | [k1]     -> [for k2 in pozostale do if k1 <> k2 then yield [k; k1; k2]]
-        | _        -> [for k1 in pozostale do for k2 in pozostale do if k1 <> k2 then yield [k; k1; k2]]
-    let wygrywa k = List.forall id <| List.map (fun komb -> 0 = zwyciezcaLewy {stol with karty = komb; pozostale = []} ) (kombinacje k) 
+        | [Karta(kol,_) as k1; k2] -> [([k; k1; k2], kol)]
+        | [Karta(kol,_) as k1]     -> [for k2 in pozostale do if k1 <> k2 then yield ([k; k1; k2], kol)]
+        | _        -> [for k1 in pozostale do for k2 in pozostale do if k1 <> k2 then yield ([k; k1; k2], kk)]
+    let wygrywa k = List.forall id <| List.map (fun (komb, kol) -> 0 = zwyciezcaLewy {stol with karty = komb; pozostale = []; kol = Some kol} ) (kombinacje k) 
                         
     let wyg = List.filter wygrywa reka |> List.sortBy (fun (Karta(_,w)) -> w)
     let prz = List.filter (not << wygrywa) reka |> List.sortBy (fun (Karta(_,w)) -> w)
@@ -285,10 +302,11 @@ let CPUzagrajKarte (reka: Karta list) (stol : Stol) =
 ///////////////////////////////////////////////////////////////////////////////
 
 let licytacja (gracze: GraczStr []) (musik: Karta list) (rozpoczynajacy: Int32) =
-    let mutable akt = rozpoczynajacy
+    let mutable akt = (rozpoczynajacy + 1) % 3
     let mutable zwyc = 0
     let mutable maks = 100
     let lic = [|1; 1; 1|]
+    lic.[rozpoczynajacy] <- 100
     let mutable pozostali = 3
     while pozostali > 1 do
         akt <- (akt + 1) % 3
@@ -321,6 +339,7 @@ let rozgrywka (pocz: Int32) (gracze: GraczStr []) =
     for _ in 1 .. 8 do
         stol.karty <- []
         stol.kol <- None
+        let mutable meld = 0
         for i in kolejnosc do
             let g = gracze.[i]
             let Karta(k, w) as zagrana =
@@ -331,9 +350,8 @@ let rozgrywka (pocz: Int32) (gracze: GraczStr []) =
                 stol.kol <- Some k
                 if (w = Krol || w = Dama) && znajdzMeldunek k g.karty then // Sprawdzenie meldunku
                     stol.atu <- Some k
-                    let p = punktyZaMeldunek k
-                    printfn "Meldunek! %dpkt" p
-                    g.wynik <- g.wynik + p
+                    meld <- punktyZaMeldunek k
+                    g.wynik <- g.wynik + meld
             stol.pozostale <- usunZReki stol.pozostale zagrana
             g.karty        <- usunZReki g.karty zagrana
             stol.karty     <- stol.karty @ [zagrana]
@@ -342,10 +360,10 @@ let rozgrywka (pocz: Int32) (gracze: GraczStr []) =
         let zwyc   = kolejnosc.[zwyciezcaLewy stol]
         gracze.[zwyc].wynik <- gracze.[zwyc].wynik + punkty
         printfn "Lewę wartą %d pkt. zdobywa %s" punkty gracze.[zwyc].imie
+        if meld <> 0 then printfn "%s melduje za %d punktów!" gracze.[kolejnosc.[0]].imie meld
         kolejnosc <- [zwyc; (zwyc + 1) % 3; (zwyc + 2) % 3]
     for g in gracze do
         g.wynik <- ((g.wynik + 5)/10)*10
-        printfn "%s wygrywa %d pkt" g.imie g.wynik
     [|gracze.[0].wynik; gracze.[1].wynik; gracze.[2].wynik|]
 
 let runda (graczeInfo: GraczStr []) (rozpoczynajacy: Int32) =
@@ -365,11 +383,13 @@ let runda (graczeInfo: GraczStr []) (rozpoczynajacy: Int32) =
     let wyniki = rozgrywka zwyc gracze
     if maks > wyniki.[zwyc] then printfn "%s nie ugrał i traci %d punktów" gracze.[zwyc].imie maks
                                  wyniki.[zwyc] <- -1 * maks
+                            else wyniki.[zwyc] <- maks
+    wynikRundy gracze wyniki
     wyniki
 
 [<EntryPoint>]
 let gra args =
-    printfn "         Wiktor Adamski prezentuje"
+    printfn @"            Wiktor Adamski prezentuje"
     printfn @".------..------..------..------..------..------."
     printfn @"|T.--. ||Y.--. ||S.--. ||I.--. ||Ą.--. ||C.--. |"
     printfn @"| :/\: || (\/) || :/\: || :(): || (\/) || :/\: |"
@@ -388,8 +408,8 @@ let gra args =
         | x::xs -> x :: dodajNaKoniec xs el
     let gracze = [|
         {rodzaj = Czlowiek; imie = imie; karty = []; wynik = 0}
-        {rodzaj = Cpu; imie = "Zdzisław"; karty = []; wynik = 0}
-        {rodzaj = Cpu; imie = "Zdzisiek"; karty = []; wynik = 0}
+        {rodzaj = Cpu; imie = "Adam"; karty = []; wynik = 0}
+        {rodzaj = Cpu; imie = "Bartek"; karty = []; wynik = 0}
         |]
     let mutable historia = []
     let mutable graczRozpoczynajacy = 0
