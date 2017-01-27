@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Compile Include="Common.fs" />
+    <Compile Include="HUD.fs" />
+    <Compile Include="CPU.fs" />
+    <Compile Include="Gracz.fs" />
+    <Compile Include="Main.fs" />
+  </ItemGroup>
+</Project>

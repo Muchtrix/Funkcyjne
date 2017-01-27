@@ -12,7 +12,8 @@
         (cons (car li) (end li))))))
 
 (define z1t1 (końce '(1 2 3 5)))
-;(define z1t2 (końce '()))          ; rzuca zamierzony wyjątek
+(define z1t2 (końce '(1)))
+;(define z1t3 (końce '()))          ; rzuca zamierzony wyjątek
 
 ; Zadanie 2
 (define count
@@ -40,16 +41,21 @@
 ; Zadanie 4
 (define evenN?
   (λ (n)
-    (if (zero? n) #t (if (< n 0) (not (oddN? (+ n 1))) (oddN? (- n 1))))))
+    (if (zero? n) #t (if (< n 0) (oddN? (+ n 1)) (oddN? (- n 1))))))
 
 (define oddN?
   (λ (n)
-    (if (zero? n) #f (if (< n 0) (not (evenN? (+ n 1))) (evenN? (- n 1))))))
+    (if (zero? n) #f (if (< n 0) (evenN? (+ n 1)) (evenN? (- n 1))))))
 
 (define z4t1 (evenN? 3))
 (define z4t2 (evenN? 2))
-(define z4t3 (oddN? 3))
-(define z4t4 (oddN? 2))
+(define z4t3 (evenN? -3))
+(define z4t4 (evenN? -2))
+(define z4t5 (oddN? 3))
+(define z4t6 (oddN? 2))
+(define z4t7 (oddN? -3))
+(define z4t8 (oddN? -2))
+
 
 ; Zadanie 5
 (define map1
