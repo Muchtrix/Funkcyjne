@@ -11,8 +11,8 @@ module Common =
     type Kolor = Pik | Trefl | Karo | Kier
     type Wartosc = Dziewiec | Walet | Dama | Krol | Dziesiec | As
     type Karta = Karta of Kolor * Wartosc
-    type Gracz = Czlowiek | Cpu
-    type GraczStr = {rodzaj : Gracz;
+    type RodzajGracza = Czlowiek | Cpu
+    type Gracz = {rodzaj : RodzajGracza;
                      imie : String;
                      mutable karty : Karta list;
                      mutable wynik : Int32}
