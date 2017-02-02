@@ -11,16 +11,22 @@ module Common =
     type Kolor = Pik | Trefl | Karo | Kier
     type Wartosc = Dziewiec | Walet | Dama | Krol | Dziesiec | As
     type Karta = Karta of Kolor * Wartosc
-    type RodzajGracza = Czlowiek | Cpu
-    type Gracz = {rodzaj : RodzajGracza;
-                     imie : String;
-                     mutable karty : Karta list;
-                     mutable wynik : Int32}
-
     type Stol = {mutable karty : Karta list;
              mutable atu : Kolor Option;
              mutable kol : Kolor Option;
              mutable pozostale: Karta list}
+
+    [<AbstractClass>]
+    type RodzajGracza () =
+        abstract member Licytuj: Karta list -> Int32 -> Int32
+        abstract member PodbijStawke: Karta list -> Int32 -> Int32
+        abstract member ZagrajKarte: Karta list -> Stol -> Gracz [] -> Int32 list -> Karta
+        abstract member OddajKarte: Karta list -> String -> Karta
+
+    and Gracz = {rodzaj : RodzajGracza;
+                     imie : String;
+                     mutable karty : Karta list;
+                     mutable wynik : Int32}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Podstawowe wartości i funkcje                                             //

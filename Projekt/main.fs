@@ -2,6 +2,8 @@ open System
 open System.Runtime.InteropServices
 open Tysiac
 open Tysiac.Common
+open Tysiac.CPU
+open Tysiac.Czlowiek
 
 ///////////////////////////////////////////////////////////////////////////////
 // Funkcja systemowa umożliwająca odpowiednie wyświetlanie znaków            //
@@ -23,8 +25,7 @@ let licytacja (gracze: Gracz []) (musik: Karta list) (rozpoczynajacy: Int32) =
         akt <- (akt + 1) % 3
         while not lic.[akt] do
             akt <- (akt + 1) % 3
-        let stawka = if gracze.[akt].rodzaj = Czlowiek then Gracz.Licytuj gracze.[akt].karty maks
-                                                       else CPU.Licytuj gracze.[akt].karty maks
+        let stawka = gracze.[akt].rodzaj.Licytuj gracze.[akt].karty maks
         if 0 = stawka then lic.[akt] <- false
                            printfn "%s pasuje" gracze.[akt].imie
                            pozostali <- pozostali - 1
@@ -36,14 +37,10 @@ let licytacja (gracze: Gracz []) (musik: Karta list) (rozpoczynajacy: Int32) =
     HUD.Reka musik false
     gracze.[zwyc].karty <- List.fold dodajDoReki gracze.[zwyc].karty musik
     for i in [1; 2] do
-        let oddana = if gracze.[zwyc].rodzaj = Czlowiek 
-                     then printfn "Wybierz kartę dla %s" gracze.[(zwyc + i) % 3].imie
-                          Gracz.OddajKarte gracze.[zwyc].karty 
-                     else CPU.OddajKarte gracze.[zwyc].karty
+        let oddana = gracze.[zwyc].rodzaj.OddajKarte gracze.[zwyc].karty gracze.[i].imie
         gracze.[zwyc].karty <- usunZReki gracze.[zwyc].karty oddana
         gracze.[(zwyc + i) % 3].karty <- dodajDoReki gracze.[(zwyc + i) % 3].karty oddana
-    maks <- if gracze.[zwyc].rodzaj = Czlowiek then Gracz.PodbijStawke gracze.[zwyc].karty maks
-                                               else CPU.PodbijStawke gracze.[zwyc].karty maks
+    maks <- gracze.[zwyc].rodzaj.PodbijStawke gracze.[zwyc].karty maks
     (zwyc, maks)
 
 let rozgrywka (pocz: Int32) (gracze: Gracz []) = 
@@ -52,19 +49,16 @@ let rozgrywka (pocz: Int32) (gracze: Gracz []) =
     for _ in 1 .. 8 do
         stol.karty <- []
         stol.kol <- None
-        let mutable meld = 0
         for i in kolejnosc do
             let g = gracze.[i]
-            let Karta(k, w) as zagrana =
-                match g.rodzaj with
-                | Czlowiek -> Gracz.ZagrajKarte g.karty stol gracze kolejnosc
-                | Cpu      -> CPU.ZagrajKarte g.karty stol
+            let Karta(k, w) as zagrana = g.rodzaj.ZagrajKarte g.karty stol gracze kolejnosc
             if List.isEmpty stol.karty then                          // Wybór atu (pierwszy gracz w lewie)
                 stol.kol <- Some k
                 if (w = Krol || w = Dama) && znajdzMeldunek k g.karty then // Sprawdzenie meldunku
                     stol.atu <- Some k
-                    meld <- punktyZaMeldunek k
+                    let meld = punktyZaMeldunek k
                     g.wynik <- g.wynik + meld
+                    printfn "%s melduje za %d punktów!" g.imie meld
             stol.pozostale <- usunZReki stol.pozostale zagrana
             g.karty        <- usunZReki g.karty zagrana
             stol.karty     <- stol.karty @ [zagrana]
@@ -73,11 +67,8 @@ let rozgrywka (pocz: Int32) (gracze: Gracz []) =
         let zwyc   = kolejnosc.[zwyciezcaLewy stol]
         gracze.[zwyc].wynik <- gracze.[zwyc].wynik + punkty
         printfn "Lewę wartą %d pkt. zdobywa %s" punkty gracze.[zwyc].imie
-        if meld <> 0 then printfn "%s melduje za %d punktów!" gracze.[kolejnosc.[0]].imie meld
         kolejnosc <- [zwyc; (zwyc + 1) % 3; (zwyc + 2) % 3]
     HUD.WynikRundy gracze [|for g in gracze do yield g.wynik|]
-    for g in gracze do
-        g.wynik <- ((g.wynik + 5)/10)*10
     [|gracze.[0].wynik; gracze.[1].wynik; gracze.[2].wynik|]
 
 let runda (graczeInfo: Gracz []) (rozpoczynajacy: Int32) =
@@ -98,13 +89,14 @@ let runda (graczeInfo: Gracz []) (rozpoczynajacy: Int32) =
     if maks > wyniki.[zwyc] then printfn "%s nie ugrał i traci %d punktów" gracze.[zwyc].imie maks
                                  wyniki.[zwyc] <- -1 * maks
                             else wyniki.[zwyc] <- maks
-    wyniki
+    Array.map (fun x -> if x > 0 then ((x+5)/10)*10 else x) wyniki
 
 [<EntryPoint>]
 let gra args =
-    Kernel.SetConsoleOutputCP 65001u |> ignore
+    Kernel.SetConsoleOutputCP 65001u |> ignore // Przestawienie konsoli w tryb UTF-8
     let kolorKonsoli = Console.ForegroundColor
     Console.ForegroundColor <- ConsoleColor.Gray
+    printfn ""
     printfn @"            Wiktor Adamski prezentuje"
     printfn @".------..------..------..------..------..------."
     printfn @"|T.--. ||Y.--. ||S.--. ||I.--. ||Ą.--. ||C.--. |"
@@ -123,9 +115,9 @@ let gra args =
         | [x]   -> x :: [Array.map2 ( + ) x el]
         | x::xs -> x :: dodajNaKoniec xs el
     let gracze = [|
-        {rodzaj = Czlowiek; imie = imie; karty = []; wynik = 0}
-        {rodzaj = Cpu; imie = "Adam"; karty = []; wynik = 0}
-        {rodzaj = Cpu; imie = "Bartek"; karty = []; wynik = 0}
+        {rodzaj = Czlowiek (); imie = imie; karty = []; wynik = 0}
+        {rodzaj = CPU (); imie = "Janusz"; karty = []; wynik = 0}
+        {rodzaj = CPU (); imie = "Marian"; karty = []; wynik = 0}
         |]
     let mutable historia = []
     let mutable graczRozpoczynajacy = 0
@@ -141,5 +133,8 @@ let gra args =
         printfn ""
         HUD.Historia historia gracze
         printfn ""
+    printfn ""
+    printfn "Koniec Gry!"
+    printfn ""
     Console.ForegroundColor <- kolorKonsoli
     0

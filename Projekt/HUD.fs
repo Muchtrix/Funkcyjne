@@ -28,16 +28,24 @@ module HUD =
         | Dziesiec -> "10"
         | As       -> "A"
 
-    let private pokazStol (stol: Stol) (gracze: Gracz []) (kolejnosc: Int32 list) =
-        if List.isEmpty stol.karty then ["     ";"     ";"pusty";"     ";"     "]
+    let private pokazStol (stol: Stol) (gracze: Gracz []) (kolejnosc: Int32 list) (linijka: Int32) =
+        if List.isEmpty stol.karty then printf (if linijka = 2 then "pusty" else "     ")
             else
             let dl       = (List.length stol.karty) - 1
             let poleDl   = String.length (Array.reduce (fun g1 g2 -> if String.length g1.imie < String.length g2.imie then g2 else g1) gracze).imie + 1
-            let boki     = List.fold (fun aku _ -> aku + sprintf "%-*s" poleDl "+---+") "" stol.karty 
-            let kolory   = List.fold (fun aku (Karta(k,_)) -> aku + (sprintf "%-*s" poleDl <| sprintf "| %s |" (symbolKolor k))) "" stol.karty
-            let wartosci = List.fold (fun aku (Karta(_,w)) -> aku + (sprintf "%-*s" poleDl <| sprintf "| %-2s|" ( symbolWartosc w))) "" stol.karty
-            let imiona   = List.fold (fun aku ind -> aku + (sprintf "%-*s" poleDl gracze.[kolejnosc.[ind]].imie)) "" [0 .. dl]
-            [boki; kolory; wartosci; boki; imiona]
+            let karty    = [
+                (fun _ -> printf "%-*s" poleDl "+---+")
+                (fun (Karta(k,_)) -> printf "| "
+                                     czerwonyKolor k true
+                                     printf "%s" (symbolKolor k)
+                                     Console.ForegroundColor <- ConsoleColor.Gray
+                                     printf " |"
+                                     if poleDl > 5 then printf "%-*s" (poleDl - 5) " ")
+                (fun (Karta(_,w)) -> printf "%-*s" poleDl <| sprintf "| %-2s|" ( symbolWartosc w))
+                (fun _ -> printf "%-*s" poleDl "+---+")
+                           ]
+            if linijka < 4 then for karta in stol.karty do karty.[linijka] karta
+                           else for ind in [0 .. dl] do printf "%-*s" poleDl gracze.[kolejnosc.[ind]].imie
 
     let WynikRundy (gracze: Gracz []) (wyniki: Int32 []) =
         let poleDl = String.length (Array.reduce (fun g1 g2 -> if String.length g1.imie < String.length g2.imie then g2 else g1) gracze).imie
@@ -52,22 +60,21 @@ module HUD =
         
 
     let Stol (stol: Stol) (gracze: Gracz []) (kolejnosc: Int32 list) =
-        for linijka in pokazStol stol gracze kolejnosc do
-            printfn "%s" linijka    
+        for linijka in [0 .. 4] do
+            pokazStol stol gracze kolejnosc linijka
+            printfn ""    
 
     let RekaIStol (reka: Karta list) (dozw: Boolean list) (stol: Stol) (gracze: Gracz []) (kolejnosc: Int32 list) = 
         let lista = List.zip reka dozw
-        let kolorAktywny = Console.ForegroundColor
-        let kolorNieaktywny = ConsoleColor.DarkGray
-        let ustawKolor kol = Console.ForegroundColor <- if kol then kolorAktywny else kolorNieaktywny
-        let naStole = pokazStol stol gracze kolejnosc
+        let ustawKolor kol = Console.ForegroundColor <- if kol then ConsoleColor.Gray else ConsoleColor.DarkGray
         let mozeKolor = function Some k -> sprintf "%A" k | _ -> "-----"
+        let stolDl = List.length stol.karty * String.length (Array.reduce (fun g1 g2 -> if String.length g1.imie < String.length g2.imie then g2 else g1) gracze).imie + 1
         let mutable licznik = 1
         printfn ""
-        printfn "%s" <| String.replicate (3 + String.length naStole.[0] + 5 * List.length lista) "-"
+        printfn "%s" <| String.replicate (3 + stolDl + 5 * List.length lista) "-"
         printfn "Kolor: %5s, Atu: %s" (mozeKolor stol.kol) (mozeKolor stol.atu)
-        printfn "%-*s | Twoja ręka" (String.length naStole.[0]) "Stol"
-        printfn "%4s-+-%s" (String.replicate (String.length naStole.[0]) "-") (String.replicate (5 * List.length lista) "-")
+        printfn "%-*s | Twoja ręka" stolDl "Stół"
+        printfn "%4s-+-%s" (String.replicate stolDl "-") (String.replicate (5 * List.length lista) "-")
         let linijki = [   
                         (0, (fun _ _                     -> printf "+---+"))
                         (1, (fun (Karta(kol, _)) aktywna -> printf "| "; czerwonyKolor kol aktywna;  printf "%s" <| symbolKolor kol; ustawKolor aktywna; printf " |" ))
@@ -75,7 +82,8 @@ module HUD =
                         (3, (fun _ _                     -> printf "+---+"))
                         (4, (fun _ akt                   -> (if akt then printf "  %d  " licznik else printf "     "); licznik <- licznik + 1)) ] 
         for (ind, lam) in linijki do
-            printf "%-4s | " naStole.[ind]
+            pokazStol stol gracze kolejnosc ind
+            printf "| "
             for (karta, aktywna) in lista do
                 ustawKolor aktywna
                 lam karta aktywna

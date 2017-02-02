@@ -4,7 +4,7 @@
     <Compile Include="Common.fs" />
     <Compile Include="HUD.fs" />
     <Compile Include="CPU.fs" />
-    <Compile Include="Gracz.fs" />
+    <Compile Include="Czlowiek.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
 </Project>
